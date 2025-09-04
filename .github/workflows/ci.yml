@@ -16,6 +16,7 @@ env:
   CARGO_TERM_COLOR: always
   GITHUB_ACTOR: pop-cli
   CARGO_INCREMENTAL: 0
+  CACHE_KEY: shared-cache
 
 concurrency:
   # Cancel any in-progress jobs for the same pull request
@@ -42,48 +43,66 @@ jobs:
   build:
     needs: lint
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-Dwarnings"
+    container:
+      image: ghcr.io/moliholy/ci:latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Check no default features
         run: cargo check --no-default-features
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
       - name: Check contracts feature
         run: cargo check --no-default-features --features contract
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
       - name: Check polkavm-contracts feature
         run: cargo check --no-default-features --features "polkavm-contracts, v6" -p pop-cli -p pop-contracts
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
       - name: Check chain feature
         run: cargo check --no-default-features --features chain
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
-      - name: Build default features
-        run: cargo build
+      - name: Check default features
+        run: cargo check
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
   clippy:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/moliholy/ci:latest
     permissions:
       checks: write
-    env:
-      RUSTFLAGS: "-Wmissing_docs"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Annotate with Clippy warnings
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          RUSTFLAGS: "-Wmissing_docs"
 
   deny:
     runs-on: ubuntu-latest
@@ -94,7 +113,7 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-          arguments: '--no-default-features'
+          arguments: --no-default-features
 
   docker:
     runs-on: ubuntu-latest
@@ -106,62 +125,67 @@ jobs:
   docs:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/moliholy/ci:latest
     permissions:
       checks: write
-    env:
-      RUSTDOCFLAGS: "-Dwarnings"
-      RUSTFLAGS: "-Dmissing_docs"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Check no default features
         run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: "-Dwarnings"
+          RUSTFLAGS: "-Dmissing_docs"
 
   unit-tests:
     needs: build
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-Dwarnings"
+    container:
+      image: ghcr.io/moliholy/ci:latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Run unit tests (no default features)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUSTFLAGS: "-Dwarnings"
         run: cargo nextest run --lib --bins --no-default-features
 
       - name: Run unit tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUSTFLAGS: "-Dwarnings"
         run: cargo nextest run --lib --bins --no-default-features --features "contract,chain"
 
   polkavm-unit-tests:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/moliholy/ci:latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Run unit tests for polkavm-contracts
         env:
@@ -171,15 +195,17 @@ jobs:
   coverage:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/moliholy/ci:latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
-
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Generate code coverage
         run: cargo llvm-cov --workspace --lib --bins --no-default-features --features "default chain telemetry v5 wasm-contracts wallet-integration" --codecov --output-path codecov.json
@@ -194,12 +220,17 @@ jobs:
   documentation-tests:
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/moliholy/ci:latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: "./.github/actions/init"
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
         with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+          cache-on-failure: true
+          cache-all-crates: true
+          key: ${{ env.CACHE_KEY }}
 
       - name: Run doc tests
         run: cargo test --doc
@@ -226,9 +257,10 @@ jobs:
 
       - name: Install packages (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: "./.github/actions/init"
-        with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
 
       - name: Install packages (macOS)
         if: matrix.os == 'macos-latest'
@@ -264,13 +296,14 @@ jobs:
           toolchain: stable
           default: true
           target: wasm32-unknown-unknown
-          components: rust-src, clippy
+          components: rust-src
 
       - name: Install packages (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: "./.github/actions/init"
-        with:
-          git-user: ${{ env.GITHUB_ACTOR }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          protoc --version
 
       - name: Install packages (macOS)
         if: matrix.os == 'macos-latest'
