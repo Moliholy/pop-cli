@@ -65,6 +65,7 @@ pub(crate) fn overwrite_weight_dir_command(
 	dest_path: &Path,
 	arguments: &[String],
 ) -> anyhow::Result<()> {
+	println!("DEBUG: ENTERING OVERWRITE WEIGHT DIR COMMAND");
 	// Create the destination directory if it doesn't exist.
 	if !dest_path.is_dir() {
 		fs::create_dir(dest_path)?;
@@ -80,6 +81,7 @@ pub(crate) fn overwrite_weight_dir_command(
 		let destination = dest_path.join(path.file_name().unwrap());
 		overwrite_weight_file_command(&path, destination.as_path(), arguments)?;
 	}
+	println!("DEBUG: OVERWRITE WEIGHT DIR COMMAND SUCCESSFUL");
 	Ok(())
 }
 

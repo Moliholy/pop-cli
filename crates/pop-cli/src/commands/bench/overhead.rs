@@ -44,15 +44,19 @@ impl BenchmarkOverhead {
 		};
 
 		cli.warning("NOTE: this may take some time...")?;
+		println!("DEBUG: STEP 1");
 		spinner.start("Benchmarking the execution overhead and generating weight file...");
 		let result = self.run(cli).await;
 		spinner.clear();
 
 		// Display the benchmarking command.
+		println!("Displaying the benchmarking command: {}", self.display());
 		cli.info(self.display())?;
 		if let Err(e) = result {
+			println!("DEBUG: PRINTING ERROR: {e}");
 			return display_message(&e.to_string(), false, cli);
 		}
+		println!("DEBUG: FINAL STEP");
 		display_message("Benchmark completed successfully!", true, cli)?;
 		Ok(())
 	}
@@ -116,6 +120,7 @@ impl BenchmarkOverhead {
 	}
 
 	async fn run(&mut self, cli: &mut impl cli::traits::Cli) -> anyhow::Result<()> {
+		println!("DEBUG: INSIDE THE RUN FUNCTION");
 		let temp_dir = tempdir()?;
 		let original_weight_path = self
 			.command
@@ -137,6 +142,7 @@ impl BenchmarkOverhead {
 			self.collect_arguments(),
 			false,
 		)?;
+		println!("DEBUG: PRINTING THE OUTPUT");
 		println!("{}", output);
 
 		// Restore the original weight path.
@@ -147,6 +153,7 @@ impl BenchmarkOverhead {
 			&original_weight_path,
 			&self.collect_display_arguments(),
 		)?;
+		println!("DEBUG: LEAVING THE RUN FUNCTION");
 		Ok(())
 	}
 
