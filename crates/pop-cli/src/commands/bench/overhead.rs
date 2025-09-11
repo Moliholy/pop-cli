@@ -392,7 +392,7 @@ mod tests {
 			profile: None,
 			no_build: false,
 		};
-		assert!(cmd.execute(&mut cli).await.is_ok());
+		cmd.execute(&mut cli).await?;
 
 		for entry in temp_dir.path().read_dir()? {
 			let path = entry?.path();
