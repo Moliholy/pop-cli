@@ -24,7 +24,7 @@ env:
 
 concurrency:
   # Cancel any in-progress jobs for the same pull request
-  group: ${{ github.event.pull_request.number || github.head_ref || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -202,7 +202,6 @@ jobs:
   coverage:
     needs:
       - setup
-      - build
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.setup.outputs.image }}
@@ -214,10 +213,10 @@ jobs:
         with:
           cache-on-failure: true
           cache-all-crates: true
-          shared-key: shared-${{ github.head_ref || github.ref_name }}
+          shared-key: shared-coverage-${{ github.head_ref || github.ref_name }}
 
       - name: Generate code coverage
-        run: cargo llvm-cov --workspace --lib --bins --no-default-features --features "default chain telemetry v5 wasm-contracts wallet-integration" --codecov --output-path codecov.json
+        run: cargo llvm-cov --workspace --lib --bins --no-default-features --features "default chain telemetry v5 wasm-contracts wallet-integration" --codecov --output-path codecov.json --no-fail-fast
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

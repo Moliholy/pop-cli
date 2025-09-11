@@ -44,19 +44,15 @@ impl BenchmarkOverhead {
 		};
 
 		cli.warning("NOTE: this may take some time...")?;
-		println!("DEBUG: STEP 1");
 		spinner.start("Benchmarking the execution overhead and generating weight file...");
 		let result = self.run(cli).await;
 		spinner.clear();
 
 		// Display the benchmarking command.
-		println!("Displaying the benchmarking command: {}", self.display());
 		cli.info(self.display())?;
 		if let Err(e) = result {
-			println!("DEBUG: PRINTING ERROR: {e}");
 			return display_message(&e.to_string(), false, cli);
 		}
-		println!("DEBUG: FINAL STEP");
 		display_message("Benchmark completed successfully!", true, cli)?;
 		Ok(())
 	}
@@ -120,7 +116,6 @@ impl BenchmarkOverhead {
 	}
 
 	async fn run(&mut self, cli: &mut impl cli::traits::Cli) -> anyhow::Result<()> {
-		println!("DEBUG: INSIDE THE RUN FUNCTION");
 		let temp_dir = tempdir()?;
 		let original_weight_path = self
 			.command
@@ -142,7 +137,6 @@ impl BenchmarkOverhead {
 			self.collect_arguments(),
 			false,
 		)?;
-		println!("DEBUG: PRINTING THE OUTPUT");
 		println!("{}", output);
 
 		// Restore the original weight path.
@@ -397,7 +391,7 @@ mod tests {
 			profile: None,
 			no_build: false,
 		};
-		assert!(cmd.execute(&mut cli).await.is_ok());
+		cmd.execute(&mut cli).await?;
 
 		for entry in temp_dir.path().read_dir()? {
 			let path = entry?.path();
@@ -444,15 +438,14 @@ mod tests {
 			"--weight-path",
 			temp_dir.path().join("weights.rs").to_str().unwrap(),
 		])?;
-		assert!(BenchmarkOverhead {
+		BenchmarkOverhead {
 			command: cmd,
 			skip_confirm: true,
 			profile: Some(Profile::Debug),
-			no_build: false
+			no_build: false,
 		}
 		.execute(&mut cli)
-		.await
-		.is_ok());
+		.await?;
 		cli.verify()
 	}
 }

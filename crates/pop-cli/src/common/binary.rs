@@ -63,8 +63,19 @@ pub async fn check_and_prompt<Generator: BinaryGenerator>(
 			let spinner = spinner();
 			spinner.start(format!("📦 Sourcing {binary_name}..."));
 
-			binary.source(false, &(), true).await?;
-			set_executable_permission(binary.path())?;
+			// Create the parent directory if it doesn't exist.
+			if let Some(parent) = binary.path().parent() {
+				std::fs::create_dir_all(parent)?;
+			}
+
+			// Download in a temporary directory to avoid conflicts with the cache directory.
+			let temp_dir = tempfile::tempdir()?;
+			let temp_binary = Generator::generate(temp_dir.path().to_path_buf(), None).await?;
+			temp_binary.source(false, &(), true).await?;
+			set_executable_permission(temp_binary.path())?;
+			if std::fs::rename(temp_binary.path(), binary.path()).is_err() {
+				let _ = std::fs::copy(temp_binary.path(), binary.path());
+			}
 
 			spinner.stop(format!(
 				"✅ {binary_name} successfully sourced. Cached at: {}",
